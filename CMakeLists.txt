@@ -40,6 +40,75 @@ message(STATUS "Found lit: ${LLVM_EXTERNAL_LIT}")
 
 enable_testing()
 
+# The SUNDIALS benchmarks link against SUNDIALS (including its Fortran module
+# interface). Build the pinned SUNDIALS submodule once and expose its Fortran
+# module include dir and link flags to the lit configuration as the
+# %sundialsFortran and %sundialsLibs substitutions. Set SUNDIALS_PREFIX to an
+# existing SUNDIALS install (with the Fortran module interface enabled) to skip
+# building the submodule.
+set(SUNDIALS_PREFIX "" CACHE PATH "Path to an existing SUNDIALS install with the Fortran module interface; skips building dependencies/sundials")
+set(SUNDIALS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/sundials")
+set(SUNDIALS_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/dependencies/sundials")
+set(SUNDIALS_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/dependencies/sundials-install")
+set(BENCH_SUNDIALS_LIB_DIR "")
+if(SUNDIALS_PREFIX)
+  set(BENCH_SUNDIALS_FORTRAN_INCLUDE "${SUNDIALS_PREFIX}/fortran")
+  set(BENCH_SUNDIALS_LIB_DIR "${SUNDIALS_PREFIX}/lib")
+  set(BENCH_SUNDIALS_DEP_TARGET "")
+else()
+  if(NOT EXISTS "${SUNDIALS_SOURCE_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR
+      "SUNDIALS source not found at ${SUNDIALS_SOURCE_DIR}; "
+      "init the dependencies/sundials submodule or set SUNDIALS_PREFIX")
+  endif()
+  include(ExternalProject)
+  ExternalProject_Add(bench-sundials
+    SOURCE_DIR "${SUNDIALS_SOURCE_DIR}"
+    BINARY_DIR "${SUNDIALS_BINARY_DIR}"
+    INSTALL_DIR "${SUNDIALS_INSTALL_DIR}"
+    CMAKE_ARGS
+      -G ${CMAKE_GENERATOR}
+      -DCMAKE_BUILD_TYPE=Release
+      -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+      -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER}
+      -DBUILD_FORTRAN_MODULE_INTERFACE=ON
+      -DBUILD_STATIC_LIBS=OFF
+      -DBUILD_ARKODE=OFF -DBUILD_CVODES=OFF -DBUILD_IDA=OFF -DBUILD_IDAS=OFF
+      -DBUILD_KINSOL=OFF
+      -DEXAMPLES_ENABLE_C=OFF -DEXAMPLES_ENABLE_CXX=OFF
+      -DEXAMPLES_ENABLE_F2003=OFF -DEXAMPLES_INSTALL=OFF
+      -DBUILD_TESTING=OFF
+      -DCMAKE_INSTALL_PREFIX=${SUNDIALS_INSTALL_DIR}
+    BUILD_ALWAYS ON)
+  set(BENCH_SUNDIALS_FORTRAN_INCLUDE "${SUNDIALS_INSTALL_DIR}/fortran")
+  set(BENCH_SUNDIALS_DEP_TARGET bench-sundials)
+endif()
+# SUNDIALS installs its libs under lib or lib64 depending on the platform;
+# after building the submodule, pick whichever exists. (With SUNDIALS_PREFIX
+# the install is expected to use lib, as SUNDIALS' own installs do.)
+if(NOT BENCH_SUNDIALS_LIB_DIR)
+  set(BENCH_SUNDIALS_LIB_DIR "${SUNDIALS_INSTALL_DIR}/lib")
+endif()
+if(NOT SUNDIALS_PREFIX)
+  if(NOT EXISTS "${SUNDIALS_INSTALL_DIR}/lib" AND EXISTS "${SUNDIALS_INSTALL_DIR}/lib64")
+    set(BENCH_SUNDIALS_LIB_DIR "${SUNDIALS_INSTALL_DIR}/lib64")
+  endif()
+endif()
+
+# Libraries the Robertson CVODE benchmarks link against, in link order.
+set(BENCH_SUNDIALS_LIBS
+    fcvode_mod cvode fnvecserial_mod nvecserial fsunlinsolspgmr_mod sunlinsolspgmr
+    fsunlinsoldense_mod sunlinsoldense fsunmatrixdense_mod sunmatrixdense fcore_mod core)
+set(BENCH_SUNDIALS_LIB_FLAGS
+    "-L${BENCH_SUNDIALS_LIB_DIR} -Wl,-rpath,${BENCH_SUNDIALS_LIB_DIR}")
+foreach(lib ${BENCH_SUNDIALS_LIBS})
+  string(APPEND BENCH_SUNDIALS_LIB_FLAGS " -lsundials_${lib}")
+endforeach()
+add_custom_target(bench-sundials-deps
+  COMMAND ${CMAKE_COMMAND} -E echo
+          "SUNDIALS available in ${BENCH_SUNDIALS_LIB_DIR}, Fortran modules in ${BENCH_SUNDIALS_FORTRAN_INCLUDE}"
+  DEPENDS ${BENCH_SUNDIALS_DEP_TARGET})
+
 # These variables are referenced by lit.site.cfg.py.in.
 set(BENCH_Fortran_COMPILER "${CMAKE_Fortran_COMPILER}")
 set(BENCH_ENZYME_BINARY_DIR "${Enzyme_BINARY_DIR}")
@@ -62,7 +131,7 @@ set(ENZYME_BENCH_MODULES_DIR "${Enzyme_BINARY_DIR}/modules")
 add_custom_target(bench-enzyme-deps
   COMMAND ${CMAKE_COMMAND} -E echo
           "Enzyme plugins found in ${Enzyme_BINARY_DIR}"
-  DEPENDS "${ENZYME_BENCH_PLUGIN}")
+  DEPENDS "${ENZYME_BENCH_PLUGIN}" bench-sundials-deps)
 if(NOT EXISTS "${ENZYME_BENCH_PLUGIN}")
   message(FATAL_ERROR
     "LLVMEnzyme plugin not found at ${ENZYME_BENCH_PLUGIN}; "

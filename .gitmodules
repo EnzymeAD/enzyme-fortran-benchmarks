@@ -1,0 +1,3 @@
+[submodule "dependencies/sundials"]
+	path = dependencies/sundials
+	url = https://github.com/llnl/sundials.git

@@ -30,6 +30,18 @@ substitutions as Enzyme's own Fortran tests (`%fc`, `%loadFortran`,
 benchmarks can pipe flang-emitted IR through `opt` with Enzyme loaded, or let
 flang run Enzyme directly via the FlangEnzyme plugin (`REQUIRES: flangenzyme`).
 
+### SUNDIALS benchmarks
+
+The benchmarks under `benchmarks/sundials/` link against SUNDIALS' CVODE and
+its Fortran module interface. The pinned `dependencies/sundials` submodule is
+built automatically as part of the `bench-enzyme-fortran` target (CVODE only,
+Fortran module interface on) and installed into the build tree; the lit
+configuration exposes it through the `%sundialsFortran` (Fortran `.mod`
+include path) and `%sundialsLibs` (link flags, with rpath) substitutions. To
+use an existing SUNDIALS install instead, configure with
+`-DSUNDIALS_PREFIX=/path/to/sundials/install` (built with
+`-DBUILD_FORTRAN_MODULE_INTERFACE=ON`).
+
 ### Timing benchmarks
 
 The Fortran program itself times repeated calls with `system_clock` (repetition
@@ -58,6 +70,6 @@ is both). See `./bench.sh --help`.
 ## Benchmarks
 
 - [x] Square
-- [ ] SUNDIALS
+- [x] SUNDIALS
 - [ ] Fiats
 - [ ] MITgcm

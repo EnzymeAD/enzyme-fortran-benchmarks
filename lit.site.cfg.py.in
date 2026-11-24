@@ -38,8 +38,9 @@ except KeyError:
 
 # excludes: A list of directories to exclude from the testsuite. The 'Inputs'
 # subdirectories contain auxiliary inputs for various tests in their parent
-# directories.
-config.excludes = ['Inputs']
+# directories, and 'dependencies' holds the pinned SUNDIALS submodule, which
+# is built by CMake but is not itself a benchmark.
+config.excludes = ['Inputs', 'dependencies']
 
 config.substitutions.append(('%shlibext', config.llvm_shlib_ext))
 config.substitutions.append(('%llvmver', config.llvm_ver))
@@ -52,6 +53,12 @@ config.substitutions.append(('%fc', config.fc))
 if config.fc == "ifx":
     config.available_features.add('ifx')
 config.substitutions.append(('%loadFortran', '-I@BENCH_ENZYME_BINARY_DIR@/modules'))
+
+# SUNDIALS (from the dependencies/sundials submodule or a SUNDIALS_PREFIX
+# install): Fortran module include path and link flags used by the SUNDIALS
+# benchmarks.
+config.substitutions.append(('%sundialsFortran', '-I@BENCH_SUNDIALS_FORTRAN_INCLUDE@'))
+config.substitutions.append(('%sundialsLibs', '@BENCH_SUNDIALS_LIB_FLAGS@'))
 
 # Load the LLVM-side Enzyme plugin into opt, using the new pass-manager
 # interface where appropriate. Mirrors the %loadEnzyme substitution in the
