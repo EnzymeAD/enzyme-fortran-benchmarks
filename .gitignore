@@ -3,6 +3,9 @@
 # Subdirectories
 build/
 
+# File extensions
+*.log
+
 # Specific files
 build.sh
 test.sh
