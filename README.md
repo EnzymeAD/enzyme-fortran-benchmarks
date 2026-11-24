@@ -30,6 +30,26 @@ substitutions as Enzyme's own Fortran tests (`%fc`, `%loadFortran`,
 benchmarks can pipe flang-emitted IR through `opt` with Enzyme loaded, or let
 flang run Enzyme directly via the FlangEnzyme plugin (`REQUIRES: flangenzyme`).
 
+### Timing benchmarks
+
+The Fortran program itself times repeated calls with `system_clock` (repetition
+count passed as the first command-line argument, default 9) and prints
+average/minimum wall times and the adjoint/primal ratio, e.g.:
+
+```
+repetitions: 9
+primal average wall time (ms):     0.000038
+adjoint average wall time (ms):     0.000027
+primal minimum wall time (ms):     0.000026
+adjoint minimum wall time (ms):     0.000026
+average adjoint / primal time ratio:   0.7185
+```
+
+The lit `RUN:` line compiles the benchmark with Enzyme loaded, runs it, and
+`FileCheck`s the printed timings.
+
+The helper script `bench.sh` allows running all benchmarks.
+
 ## Benchmarks
 
 - [x] Square
