@@ -20,7 +20,7 @@ module bratu_model
   use, intrinsic :: iso_fortran_env, only: real64
   implicit none
   private
-  public :: dp, residual, jacobian_vector_product_adjoint, jacobian_vector_product_ref
+  public :: dp, residual, jacobian_vector_product_ad, jacobian_vector_product_ref
   integer, parameter :: dp = real64
 contains
 
@@ -41,7 +41,7 @@ contains
     end do
   end subroutine residual
 
-  subroutine jacobian_vector_product_adjoint(n, dx, lambda, u, v, jv)
+  subroutine jacobian_vector_product_ad(n, dx, lambda, u, v, jv)
     use enzyme, only: enzyme_const, enzyme_dup, enzyme_fwddiff
     integer, intent(in) :: n
     real(dp), intent(in) :: dx, lambda
@@ -54,7 +54,7 @@ contains
     call enzyme_fwddiff(residual, enzyme_const, n, enzyme_const, dx, &
                         enzyme_const, lambda, enzyme_dup, u, v, &
                         enzyme_dup, f, jv)
-  end subroutine jacobian_vector_product_adjoint
+  end subroutine jacobian_vector_product_ad
 
   ! Reference implementation for the Jacobian-vector product
   subroutine jacobian_vector_product_ref(n, dx, lambda, u, v, jv)
@@ -139,7 +139,7 @@ end module newton_krylov
 
 program bratu_steady
   use, intrinsic :: iso_fortran_env, only: int64
-  use bratu_model, only: dp, residual, jacobian_vector_product_adjoint, jacobian_vector_product_ref
+  use bratu_model, only: dp, residual, jacobian_vector_product_ad, jacobian_vector_product_ref
   use newton_krylov, only: solve_bratu
   implicit none
   integer, parameter :: n = 200
@@ -192,7 +192,7 @@ program bratu_steady
   do repetition = 1, repetitions
     call system_clock(start_count)
     call solve_bratu(n, dx, lambda, u_ad, converged(2), newton_steps(2), &
-                     krylov_steps(2), jacobian_vector_product_adjoint)
+                     krylov_steps(2), jacobian_vector_product_ad)
     call system_clock(end_count)
     ad_times(repetition) = real(end_count - start_count, dp) / real(clock_rate, dp)
   end do
@@ -216,7 +216,7 @@ program bratu_steady
   write (*, "(a40,es11.4)") "adjoint average wall time (s): ", sum(ad_times) / repetitions
   write (*, "(a40,es11.4)") "primal minimum wall time (s): ", minval(primal_times)
   write (*, "(a40,es11.4)") "reference minimum wall time (s): ", minval(ref_times)
-  write (*, "(a40,es11.4)") "adjoint minimum wall time (s): ", minval(ad_times)
+  write (*, "(a40,es11.4)") "adjoint minimum wall time (s): ", 1 * minval(ad_times)
   write (*, "(a40,es11.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
   write (*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
 end program bratu_steady

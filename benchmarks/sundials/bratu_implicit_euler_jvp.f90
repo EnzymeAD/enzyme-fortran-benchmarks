@@ -26,7 +26,7 @@ module bratu_implicit_euler
   use, intrinsic :: iso_fortran_env, only: real64
   implicit none
   private
-  public :: dp, residual, jacobian_vector_product_adjoint, jacobian_vector_product_ref, &
+  public :: dp, residual, jacobian_vector_product_ad, jacobian_vector_product_ref, &
     integrate_krylov
   integer, parameter :: dp = real64
 contains
@@ -47,7 +47,7 @@ contains
     end do
   end subroutine residual
 
-  subroutine jacobian_vector_product_adjoint(n, dx, lambda, u, v, jv)
+  subroutine jacobian_vector_product_ad(n, dx, lambda, u, v, jv)
     use enzyme, only: enzyme_const, enzyme_dup, enzyme_fwddiff
     integer, intent(in) :: n
     real(dp), intent(in) :: dx, lambda
@@ -59,7 +59,7 @@ contains
     call enzyme_fwddiff(residual, enzyme_const, n, enzyme_const, dx, &
                         enzyme_const, lambda, enzyme_dup, u, v, &
                         enzyme_dup, f, jv)
-  end subroutine jacobian_vector_product_adjoint
+  end subroutine jacobian_vector_product_ad
 
   ! Reference implementation for the Jacobian-vector product
   subroutine jacobian_vector_product_ref(n, dx, lambda, u, v, jv)
@@ -78,10 +78,10 @@ contains
     end do
   end subroutine jacobian_vector_product_ref
 
-  subroutine integrate_krylov(n, dx, lambda, dt, nsteps, use_adjoint, u, newton_steps, krylov_steps)
+  subroutine integrate_krylov(n, dx, lambda, dt, nsteps, use_ad, u, newton_steps, krylov_steps)
     integer, intent(in) :: n, nsteps
     real(dp), intent(in) :: dx, lambda, dt
-    logical, intent(in) :: use_adjoint
+    logical, intent(in) :: use_ad
     real(dp), intent(out) :: u(n)
     integer, intent(out) :: newton_steps, krylov_steps
     real(dp) :: u_old(n)
@@ -92,17 +92,17 @@ contains
     krylov_steps = 0
     do step = 1, nsteps
       u_old = u
-      call implicit_euler_step(n, dx, lambda, dt, u_old, u, use_adjoint, newton_steps, krylov_steps)
+      call implicit_euler_step(n, dx, lambda, dt, u_old, u, use_ad, newton_steps, krylov_steps)
     end do
   end subroutine integrate_krylov
 
-  subroutine implicit_euler_step(n, dx, lambda, dt, u_old, u, use_adjoint, newton_steps, &
+  subroutine implicit_euler_step(n, dx, lambda, dt, u_old, u, use_ad, newton_steps, &
                                  krylov_steps)
     integer, intent(in) :: n
     real(dp), intent(in) :: dx, lambda, dt
     real(dp), intent(in) :: u_old(n)
     real(dp), intent(inout) :: u(n)
-    logical, intent(in) :: use_adjoint
+    logical, intent(in) :: use_ad
     integer, intent(inout) :: newton_steps, krylov_steps
     real(dp), parameter :: eta = 1.0e-3_dp
     real(dp) :: f(n), g(n), d(n), r(n), p(n), jp(n), ap(n)
@@ -122,8 +122,8 @@ contains
       p = r
       rr = dot_product(r, r)
       do it = 1, 10 * n
-        if (use_adjoint) then
-          call jacobian_vector_product_adjoint(n, dx, lambda, u, p, jp)
+        if (use_ad) then
+          call jacobian_vector_product_ad(n, dx, lambda, u, p, jp)
         else
           call jacobian_vector_product_ref(n, dx, lambda, u, p, jp)
         end if
@@ -151,7 +151,7 @@ end module bratu_implicit_euler
 program bratu_implicit_euler_jvp_timing
   use, intrinsic :: iso_fortran_env, only: int64
   use bratu_implicit_euler, only: dp, integrate_krylov, residual, &
-    jacobian_vector_product_adjoint, jacobian_vector_product_ref
+    jacobian_vector_product_ad, jacobian_vector_product_ref
   implicit none
   integer, parameter :: n = 200
   integer, parameter :: nsteps = 50
@@ -183,7 +183,7 @@ program bratu_implicit_euler_jvp_timing
   solution_ref = -2.0_dp * log(cosh(theta * (x - 0.5_dp) / 2.0_dp) / cosh(theta / 4.0_dp))
   u_sample = 0.5_dp * sin(3.141592653589793_dp * x)
   v = sin(2.0_dp * 3.141592653589793_dp * x)
-  call jacobian_vector_product_adjoint(n, dx, lambda, u_sample, v, jv_ad)
+  call jacobian_vector_product_ad(n, dx, lambda, u_sample, v, jv_ad)
   call jacobian_vector_product_ref(n, dx, lambda, u_sample, v, jv_ref)
   if (maxval(abs(jv_ad - jv_ref)) * dx**2 > 1.0e-12_dp) then
     error stop "reference JVP is incorrect"

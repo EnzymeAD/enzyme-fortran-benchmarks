@@ -24,7 +24,7 @@ module bratu_implicit_euler
   use, intrinsic :: iso_fortran_env, only: real64
   implicit none
   private
-  public :: dp, residual, jacobian_adjoint, jacobian_ref, integrate_tridiagonal
+  public :: dp, residual, jacobian_ad, jacobian_ref, integrate_tridiagonal
   integer, parameter :: dp = real64
 contains
 
@@ -44,7 +44,7 @@ contains
     end do
   end subroutine residual
 
-  subroutine jacobian_vector_product_adjoint(n, dx, lambda, u, v, jv)
+  subroutine jacobian_vector_product_ad(n, dx, lambda, u, v, jv)
     use enzyme, only: enzyme_const, enzyme_dup, enzyme_fwddiff
     integer, intent(in) :: n
     real(dp), intent(in) :: dx, lambda
@@ -56,9 +56,9 @@ contains
     call enzyme_fwddiff(residual, enzyme_const, n, enzyme_const, dx, &
                         enzyme_const, lambda, enzyme_dup, u, v, &
                         enzyme_dup, f, jv)
-  end subroutine jacobian_vector_product_adjoint
+  end subroutine jacobian_vector_product_ad
 
-  subroutine jacobian_adjoint(n, dx, lambda, u, jac)
+  subroutine jacobian_ad(n, dx, lambda, u, jac)
     integer, intent(in) :: n
     real(dp), intent(in) :: dx, lambda
     real(dp), intent(in) :: u(n)
@@ -69,10 +69,10 @@ contains
     do j = 1, n
       v = 0.0_dp
       v(j) = 1.0_dp
-      call jacobian_vector_product_adjoint(n, dx, lambda, u, v, column)
+      call jacobian_vector_product_ad(n, dx, lambda, u, v, column)
       jac(:, j) = column
     end do
-  end subroutine jacobian_adjoint
+  end subroutine jacobian_ad
 
   ! Reference implementation for the Jacobian
   subroutine jacobian_ref(n, dx, lambda, u, jac)
@@ -90,10 +90,10 @@ contains
     end do
   end subroutine jacobian_ref
 
-  subroutine integrate_tridiagonal(n, dx, lambda, dt, nsteps, use_adjoint, u, newton_steps)
+  subroutine integrate_tridiagonal(n, dx, lambda, dt, nsteps, use_ad, u, newton_steps)
     integer, intent(in) :: n, nsteps
     real(dp), intent(in) :: dx, lambda, dt
-    logical, intent(in) :: use_adjoint
+    logical, intent(in) :: use_ad
     real(dp), intent(out) :: u(n)
     integer, intent(out) :: newton_steps
     real(dp) :: u_old(n), f(n), g(n), jac(n, n)
@@ -112,8 +112,8 @@ contains
       tol = 1.0e-10_dp * norm0 + 1.0e-14_dp
       newton = 0
       do while (norm > tol .and. newton < 20)
-        if (use_adjoint) then
-          call jacobian_adjoint(n, dx, lambda, u, jac)
+        if (use_ad) then
+          call jacobian_ad(n, dx, lambda, u, jac)
         else
           call jacobian_ref(n, dx, lambda, u, jac)
         end if
@@ -157,7 +157,7 @@ end module bratu_implicit_euler
 program bratu_implicit_euler_jacobian_timing
   use, intrinsic :: iso_fortran_env, only: int64
   use bratu_implicit_euler, only: dp, integrate_tridiagonal, residual, &
-    jacobian_adjoint, jacobian_ref
+    jacobian_ad, jacobian_ref
   implicit none
   integer, parameter :: n = 200
   integer, parameter :: nsteps = 50
@@ -188,7 +188,7 @@ program bratu_implicit_euler_jacobian_timing
   x = [(real(i, dp) * dx, i = 1, n)]
   solution_ref = -2.0_dp * log(cosh(theta * (x - 0.5_dp) / 2.0_dp) / cosh(theta / 4.0_dp))
   u_sample = 0.5_dp * sin(3.141592653589793_dp * x)
-  call jacobian_adjoint(n, dx, lambda, u_sample, jac_ad)
+  call jacobian_ad(n, dx, lambda, u_sample, jac_ad)
   call jacobian_ref(n, dx, lambda, u_sample, jac_ref)
   if (maxval(abs(jac_ad - jac_ref)) * dx**2 > 1.0e-12_dp) then
     error stop "reference Jacobian is incorrect"
