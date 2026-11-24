@@ -5,9 +5,6 @@
 #
 # Options:
 #   -r, --repetitions N   repetition count passed to each benchmark (default: 9)
-#   -c, --case N          which compiled case to run: 1 = flang IR piped through
-#                         opt+Enzyme, 2 = flang with the FlangEnzyme plugin
-#                         (default: both)
 #   -b, --build-dir DIR   CMake build directory (default: ./build)
 #   -l, --list            list the discovered benchmarks and exit
 #   -h, --help            show this help
@@ -23,7 +20,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${SCRIPT_DIR}"
 
 REPETITIONS=9
-CASES="1 2"
 BUILD_DIR="${REPO_ROOT}/build"
 LIST_ONLY=0
 FILTERS=()
@@ -34,60 +30,52 @@ usage() {
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    -r|--repetitions)
-      REPETITIONS="${2:?--repetitions requires a value}"
-      shift 2
-      ;;
-    -r=*|--repetitions=*)
-      REPETITIONS="${1#*=}"
-      shift
-      ;;
-    -c|--case)
-      CASES="${2:?--case requires a value}"
-      shift 2
-      ;;
-    -c=*|--case=*)
-      CASES="${1#*=}"
-      shift
-      ;;
-    -b|--build-dir)
-      BUILD_DIR="${2:?--build-dir requires a value}"
-      shift 2
-      ;;
-    -b=*|--build-dir=*)
-      BUILD_DIR="${1#*=}"
-      shift
-      ;;
-    -l|--list)
-      LIST_ONLY=1
-      shift
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    --)
-      shift
-      while [ $# -gt 0 ]; do
-        FILTERS+=("$1")
-        shift
-      done
-      ;;
-    -*)
-      echo "unknown option: $1" >&2
-      usage >&2
-      exit 1
-      ;;
-    *)
+  -r | --repetitions)
+    REPETITIONS="${2:?--repetitions requires a value}"
+    shift 2
+    ;;
+  -r=* | --repetitions=*)
+    REPETITIONS="${1#*=}"
+    shift
+    ;;
+  -b | --build-dir)
+    BUILD_DIR="${2:?--build-dir requires a value}"
+    shift 2
+    ;;
+  -b=* | --build-dir=*)
+    BUILD_DIR="${1#*=}"
+    shift
+    ;;
+  -l | --list)
+    LIST_ONLY=1
+    shift
+    ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  --)
+    shift
+    while [ $# -gt 0 ]; do
       FILTERS+=("$1")
       shift
-      ;;
+    done
+    ;;
+  -*)
+    echo "unknown option: $1" >&2
+    usage >&2
+    exit 1
+    ;;
+  *)
+    FILTERS+=("$1")
+    shift
+    ;;
   esac
 done
 
 # The lit exec root mirrors the source layout: each benchmark file
 # benchmarks/<group>/<name>.f90 gets its compiled binaries under
-# ${BUILD_DIR}/benchmarks/benchmarks/<group>/Output/<name>.f90.tmp{1,2}.
+# ${BUILD_DIR}/benchmarks/benchmarks/<group>/Output/<name>.f90.tmp2.
 EXEC_ROOT="${BUILD_DIR}/benchmarks/benchmarks"
 if [ ! -d "${EXEC_ROOT}" ]; then
   echo "No benchmark outputs under ${EXEC_ROOT}." >&2
@@ -116,7 +104,7 @@ matches_filter() {
   local filter
   for filter in "${FILTERS[@]}"; do
     case "${bench}" in
-      *"${filter}"*) return 0 ;;
+    *"${filter}"*) return 0 ;;
     esac
   done
   return 1
@@ -139,18 +127,16 @@ for bench in "${BENCHMARKS[@]}"; do
   group="${bench%%/*}"
   name="${bench#*/}"
   output_dir="${EXEC_ROOT}/${group}/Output"
-  for CASE in ${CASES}; do
-    binary="${output_dir}/${name}.f90.tmp${CASE}"
-    if [ ! -x "${binary}" ]; then
-      echo "skipping ${bench}, case ${CASE}: ${binary} not found (was that RUN line executed?)"
-      continue
-    fi
-    echo "${bench}, case ${CASE} (repetitions: ${REPETITIONS})"
-    echo
-    "${binary}" "${REPETITIONS}"
-    echo
-    RUN=$((RUN + 1))
-  done
+  binary="${output_dir}/${name}.f90.tmp2"
+  if [ ! -x "${binary}" ]; then
+    echo "skipping ${bench}: ${binary} not found (was that RUN line executed?)"
+    continue
+  fi
+  echo "${bench} (repetitions: ${REPETITIONS})"
+  echo
+  "${binary}" "${REPETITIONS}"
+  echo
+  RUN=$((RUN + 1))
 done
 
 if [ "${RUN}" -eq 0 ]; then

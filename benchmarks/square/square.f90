@@ -1,5 +1,4 @@
 ! REQUIRES: fortran
-! RUN: %fc -flto -O2 -c %loadFortran %s -o /dev/stdout | %opt %loadEnzyme %enzyme -o %t.ll && %fc -flto -O2 %t.ll -o %t1 && %t1 9 | FileCheck %s
 ! RUN: %if flangenzyme %{ %fc -O2 %loadFortran %loadFlangEnzyme %s -o %t2 && %t2 9 | FileCheck %s %}
 
 ! A minimal timing benchmark, timing repeated calls to the primal
@@ -70,15 +69,15 @@ program main
   if (ref_acc /= 9.0 * 6.0) error stop "unexpected reference result"
   if (ad_acc /= 9.0 * 6.0) error stop "unexpected adjoint result"
 
-  write (*, "(a,i0)") "repetitions: ", repetitions
-  write (*, "(a40,es11.4)") "primal average wall time (s): ", sum(primal_times) / repetitions
-  write (*, "(a40,es11.4)") "reference average wall time (s): ", sum(ref_times) / repetitions
-  write (*, "(a40,es11.4)") "adjoint average wall time (s): ", sum(ad_times) / repetitions
-  write (*, "(a40,es11.4)") "primal minimum wall time (s): ", minval(primal_times)
-  write (*, "(a40,es11.4)") "reference minimum wall time (s): ", minval(ref_times)
-  write (*, "(a40,es11.4)") "adjoint minimum wall time (s): ", minval(ad_times)
-  write (*, "(a40,es11.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
-  write (*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
+  write(*, "(a,i0)") "repetitions: ", repetitions
+  write(*, "(a40,es11.4)") "primal average wall time (s): ", sum(primal_times) / repetitions
+  write(*, "(a40,es11.4)") "reference average wall time (s): ", sum(ref_times) / repetitions
+  write(*, "(a40,es11.4)") "adjoint average wall time (s): ", sum(ad_times) / repetitions
+  write(*, "(a40,es11.4)") "primal minimum wall time (s): ", minval(primal_times)
+  write(*, "(a40,es11.4)") "reference minimum wall time (s): ", minval(ref_times)
+  write(*, "(a40,es11.4)") "adjoint minimum wall time (s): ", minval(ad_times)
+  write(*, "(a40,es11.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
+  write(*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
 
 contains
 

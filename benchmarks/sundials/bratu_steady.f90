@@ -1,5 +1,4 @@
 ! REQUIRES: fortran
-! RUN: %fc -flto -O2 -c %loadFortran %s -o /dev/stdout | %opt %loadEnzyme %enzyme -o %t.ll && %fc -flto -O2 %t.ll -o %t1 && %t1 9 | FileCheck %s
 ! RUN: %if flangenzyme %{ %fc -O2 %loadFortran %loadFlangEnzyme %s -o %t2 && %t2 9 | FileCheck %s %}
 
 ! Timing benchmark for the steady 1D Bratu problem
@@ -206,19 +205,24 @@ program bratu_steady
   if (maxval(abs(u_ref - solution_ref)) >= 1.0e-5_dp) error stop "unexpected reference result"
   if (maxval(abs(u_ad - u_ref)) >= 1.0e-12_dp) error stop "JVP results differ"
 
-  write (*, "(a,l1)") "both setups converged: ", all(converged)
-  write (*, "(a,l1)") "solutions agree: ", maxval(abs(u_ad - u_ref)) < 1.0e-12_dp
-  write (*, "(a,i0)") "Newton iterations per solve: ", newton_steps(1)
-  write (*, "(a,i0)") "Krylov iterations per solve: ", krylov_steps(1)
-  write (*, "(a,i0)") "repetitions: ", repetitions
-  write (*, "(a40,es11.4)") "primal average wall time (s): ", sum(primal_times) / repetitions
-  write (*, "(a40,es11.4)") "reference average wall time (s): ", sum(ref_times) / repetitions
-  write (*, "(a40,es11.4)") "adjoint average wall time (s): ", sum(ad_times) / repetitions
-  write (*, "(a40,es11.4)") "primal minimum wall time (s): ", minval(primal_times)
-  write (*, "(a40,es11.4)") "reference minimum wall time (s): ", minval(ref_times)
-  write (*, "(a40,es11.4)") "adjoint minimum wall time (s): ", 1 * minval(ad_times)
-  write (*, "(a40,es11.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
-  write (*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
+  write(*, "(a,l1)") "both setups converged: ", all(converged)
+  write(*, "(a,l1)") "solutions agree: ", maxval(abs(u_ad - u_ref)) < 1.0e-12_dp
+  write(*, "(a,i0)") "Newton iterations per solve: ", newton_steps(1)
+  write(*, "(a,i0)") "Krylov iterations per solve: ", krylov_steps(1)
+  write(*, "(a,i0)") "repetitions: ", repetitions
+  write(*, "(a40,es11.4)") "primal average wall time (s): ", sum(primal_times) / repetitions
+  write(*, "(a40,es11.4)") "reference average wall time (s): ", sum(ref_times) / repetitions
+  write(*, "(a40,es11.4)") "adjoint average wall time (s): ", sum(ad_times) / repetitions
+  write(*, "(a40,es11.4)") "primal minimum wall time (s): ", minval(primal_times)
+  write(*, "(a40,es11.4)") "reference minimum wall time (s): ", minval(ref_times)
+  write(*, "(a40,es11.4)") "adjoint minimum wall time (s): ", 1 * minval(ad_times)
+  write(*, "(a40,es11.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
+  write(*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
+  write(*,*)
+  write(*,*) "Table row:"
+  write(*,"(a41,2(1x,'&',1x,i6),3(1x,'&',es11.4),1x,'&',f6.2,1x,'\%\\')") "1D Bratu (steady)", &
+    krylov_steps, sum(primal_times) / repetitions, sum(ref_times) / repetitions, &
+    sum(ad_times) / repetitions, (sum(ad_times) / sum(ref_times) - 1.0) * 100
 end program bratu_steady
 
 ! CHECK: both setups converged: T

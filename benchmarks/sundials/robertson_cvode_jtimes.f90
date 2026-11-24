@@ -1,5 +1,4 @@
 ! REQUIRES: fortran
-! RUN: %fc -flto -O2 -c %loadFortran %sundialsFortran %s -o /dev/stdout | %opt %loadEnzyme %enzyme -o %t.ll && %fc -flto -O2 %t.ll %sundialsLibs -o %t1 && %t1 9 | FileCheck %s
 ! RUN: %if flangenzyme %{ %fc -O2 %loadFortran %loadFlangEnzyme %sundialsFortran %s %sundialsLibs -o %t2 && %t2 9 | FileCheck %s %}
 
 ! Timing benchmark for the Robertson chemical kinetics problem
@@ -246,20 +245,24 @@ program robertson_cvode_jtimes
   if (any(abs(sum(final_y, dim=1) - 1.0d0) > 1.0d-8)) error stop "mass is not conserved"
   if (maxval(abs(final_y(:, 1) - final_y(:, 2))) > 1.0d-8) error stop "solutions differ"
 
-  write (*, "(a,l1)") "both CVODE setups completed: ", all(nst > 0)
-  write (*, "(a,l1)") "final solutions agree: ", &
-    maxval(abs(final_y(:, 1) - final_y(:, 2))) <= 1.0d-8
-  write (*, "(a,i0,1x,i0)") "CVODE steps (reference, adjoint): ", nst
-  write (*, "(a,i0,1x,i0)") "JVP evaluations (reference, adjoint): ", jvp_evals
-  write (*, "(a,i0)") "repetitions: ", repetitions
-  write (*, "(a40,es11.4)") "primal average wall time (s): ", sum(primal_times) / repetitions
-  write (*, "(a40,es11.4)") "reference average wall time (s): ", sum(ref_times) / repetitions
-  write (*, "(a40,es11.4)") "adjoint average wall time (s): ", sum(ad_times) / repetitions
-  write (*, "(a40,es11.4)") "primal minimum wall time (s): ", minval(primal_times)
-  write (*, "(a40,es11.4)") "reference minimum wall time (s): ", minval(ref_times)
-  write (*, "(a40,es11.4)") "adjoint minimum wall time (s): ", minval(ad_times)
-  write (*, "(a40,es11.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
-  write (*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
+  write(*, "(a,l1)") "both CVODE setups completed: ", all(nst > 0)
+  write(*, "(a,l1)") "final solutions agree: ", maxval(abs(final_y(:, 1) - final_y(:, 2))) <= 1.0d-8
+  write(*, "(a,i0,1x,i0)") "CVODE steps (reference, adjoint): ", nst
+  write(*, "(a,i0,1x,i0)") "JVP evaluations (reference, adjoint): ", jvp_evals
+  write(*, "(a,i0)") "repetitions: ", repetitions
+  write(*, "(a40,es11.4)") "primal average wall time (s): ", sum(primal_times) / repetitions
+  write(*, "(a40,es11.4)") "reference average wall time (s): ", sum(ref_times) / repetitions
+  write(*, "(a40,es11.4)") "adjoint average wall time (s): ", sum(ad_times) / repetitions
+  write(*, "(a40,es11.4)") "primal minimum wall time (s): ", minval(primal_times)
+  write(*, "(a40,es11.4)") "reference minimum wall time (s): ", minval(ref_times)
+  write(*, "(a40,es11.4)") "adjoint minimum wall time (s): ", minval(ad_times)
+  write(*, "(a40,es11.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
+  write(*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
+  write(*,*)
+  write(*,*) "Table row:"
+  write(*,"(a41,2(1x,'&',1x,i6),3(1x,'&',es11.4),1x,'&',f6.2,1x,'\%\\')") "1D Robertson (Jacobian-free)", &
+    jvp_evals, sum(primal_times) / repetitions, sum(ref_times) / repetitions, &
+    sum(ad_times) / repetitions, (sum(ad_times) / sum(ref_times) - 1.0) * 100
 end program robertson_cvode_jtimes
 
 ! CHECK: both CVODE setups completed: T

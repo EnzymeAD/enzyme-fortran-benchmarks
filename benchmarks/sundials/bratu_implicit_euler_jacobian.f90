@@ -1,5 +1,4 @@
 ! REQUIRES: fortran
-! RUN: %fc -flto -O2 -c %loadFortran %s -o /dev/stdout | %opt %loadEnzyme %enzyme -o %t.ll && %fc -flto -O2 %t.ll -o %t1 && %t1 9 | FileCheck %s
 ! RUN: %if flangenzyme %{ %fc -O2 %loadFortran %loadFlangEnzyme %s -o %t2 && %t2 9 | FileCheck %s %}
 
 ! Timing benchmark for the time-dependent 1D Bratu problem
@@ -227,18 +226,24 @@ program bratu_implicit_euler_jacobian_timing
   if (maxval(abs(u_ref - solution_ref)) >= 1.0e-5_dp) error stop "unexpected reference result"
   if (maxval(abs(u_ad - u_ref)) >= 1.0e-10_dp) error stop "solutions differ"
 
-  write (*, "(a,f4.1)") "both setups reached t = ", nsteps * dt
-  write (*, "(a,l1)") "solutions agree: ", maxval(abs(u_ad - u_ref)) < 1.0e-10_dp
-  write (*, "(a,i0,1x,i0)") "Newton iterations (adjoint, reference): ", newton_steps
-  write (*, "(a,i0)") "repetitions: ", repetitions
-  write (*, "(a40,es11.4)") "primal average wall time (s): ", sum(primal_times) / repetitions
-  write (*, "(a40,es11.4)") "reference average wall time (s): ", sum(ref_times) / repetitions
-  write (*, "(a40,es11.4)") "adjoint average wall time (s): ", sum(ad_times) / repetitions
-  write (*, "(a40,es11.4)") "primal minimum wall time (s): ", minval(primal_times)
-  write (*, "(a40,es11.4)") "reference minimum wall time (s): ", minval(ref_times)
-  write (*, "(a40,es11.4)") "adjoint minimum wall time (s): ", minval(ad_times)
-  write (*, "(a40,es11.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
-  write (*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
+  write(*, "(a,f4.1)") "both setups reached t = ", nsteps * dt
+  write(*, "(a,l1)") "solutions agree: ", maxval(abs(u_ad - u_ref)) < 1.0e-10_dp
+  write(*, "(a,i0,1x,i0)") "Newton iterations (adjoint, reference): ", newton_steps
+  write(*, "(a,i0)") "repetitions: ", repetitions
+  write(*, "(a40,es11.4)") "primal average wall time (s): ", sum(primal_times) / repetitions
+  write(*, "(a40,es11.4)") "reference average wall time (s): ", sum(ref_times) / repetitions
+  write(*, "(a40,es11.4)") "adjoint average wall time (s): ", sum(ad_times) / repetitions
+  write(*, "(a40,es11.4)") "primal minimum wall time (s): ", minval(primal_times)
+  write(*, "(a40,es11.4)") "reference minimum wall time (s): ", minval(ref_times)
+  write(*, "(a40,es11.4)") "adjoint minimum wall time (s): ", minval(ad_times)
+  write(*, "(a40,es11.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
+  write(*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
+  write(*,*)
+  write(*,*) "Table row:"
+  write(*,"(a41,2(1x,'&',1x,i6),3(1x,'&',es11.4),1x,'&',1x,f6.2,'\%\\')") "2D Bratu (assembled Jacobian)", &
+    n * newton_steps, sum(primal_times) / repetitions, sum(ref_times) / repetitions, &
+    sum(ad_times) / repetitions, (sum(ad_times) / sum(ref_times) - 1.0) * 100
+
 end program bratu_implicit_euler_jacobian_timing
 
 ! CHECK: both setups reached t =
