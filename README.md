@@ -48,7 +48,12 @@ average adjoint / primal time ratio:   0.7185
 The lit `RUN:` line compiles the benchmark with Enzyme loaded, runs it, and
 `FileCheck`s the printed timings.
 
-The helper script `bench.sh` allows running all benchmarks.
+The helper script `bench.sh` runs the compiled benchmarks directly from their
+lit `Output` directories. It discovers every benchmark automatically and
+accepts name filters (`./bench.sh bratu`), a repetition count
+(`-r/--repetitions N`, default 9), and a case selector (`-c/--case 1|2`, where
+case 1 is the opt+Enzyme pipeline and case 2 the FlangEnzyme plugin; default
+is both). See `./bench.sh --help`.
 
 ## Benchmarks
 

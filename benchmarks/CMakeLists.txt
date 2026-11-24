@@ -5,3 +5,4 @@
 # declared in the parent CMakeLists.txt.
 
 add_subdirectory(square)
+add_subdirectory(sundials)
