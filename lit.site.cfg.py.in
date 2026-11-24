@@ -1,0 +1,104 @@
+@LIT_SITE_CFG_IN_HEADER@
+
+# Site-specific configuration for the Enzyme Fortran benchmark lit testsuite.
+#
+# This file is configured by CMake from ``lit.site.cfg.py.in``; it exposes
+# the CMake-detected paths (LLVM tools, Enzyme plugins, Fortran compiler) to
+# lit, then loads the generic ``lit.cfg.py`` to do the rest of the setup.
+#
+# Portions adapted from enzyme/test/lit.site.cfg.py.in and
+# enzyme-benchmarks/lit.site.cfg.py.in in the Enzyme project
+# (https://github.com/EnzymeAD/Enzyme), which is licensed under the Apache
+# License v2.0 with LLVM Exceptions.
+
+import os
+
+config.llvm_ver = "@BENCH_LLVM_VERSION_MAJOR@"
+config.llvm_obj_root = "@LLVM_BINARY_DIR@"
+config.llvm_tools_dir = "@BENCH_LLVM_TOOLS_DIR@"
+config.llvm_libs_dir = "@LLVM_LIBS_DIR@"
+config.llvm_shlib_ext = "@BENCH_LLVM_SHLIBEXT@"
+
+# Enzyme build tree must contain ``Enzyme/LLVMEnzyme-<ver>.so``,
+# ``Enzyme/FlangEnzyme-<ver>.so`` (and the corresponding
+# ``FlangEnzyme-<ver>.cfg``) and ``modules/``.
+config.enzyme_obj_root = "@BENCH_ENZYME_BINARY_DIR@"
+config.bench_obj_root = os.path.dirname(os.path.abspath(__file__))
+config.target_triple = "@TARGET_TRIPLE@"
+
+# Support substitution of the tools and libs dirs with user parameters. This
+# is used when we can't determine the tool dir at configuration time.
+try:
+    config.llvm_tools_dir = config.llvm_tools_dir % lit_config.params
+    config.llvm_libs_dir = config.llvm_libs_dir % lit_config.params
+except KeyError:
+    e = sys.exc_info()[1]
+    key, = e.args
+    lit_config.fatal("unable to find %r parameter, use '--param=%s=VALUE'" % (key, key))
+
+# excludes: A list of directories to exclude from the testsuite. The 'Inputs'
+# subdirectories contain auxiliary inputs for various tests in their parent
+# directories.
+config.excludes = ['Inputs']
+
+config.substitutions.append(('%shlibext', config.llvm_shlib_ext))
+config.substitutions.append(('%llvmver', config.llvm_ver))
+config.substitutions.append(('%FileCheck', config.llvm_tools_dir + "/FileCheck"))
+config.substitutions.append(('%opt', config.llvm_tools_dir + "/opt"))
+
+# The Fortran compiler
+config.fc = "@BENCH_Fortran_COMPILER@"
+config.substitutions.append(('%fc', config.fc))
+if config.fc == "ifx":
+    config.available_features.add('ifx')
+config.substitutions.append(('%loadFortran', '-I@BENCH_ENZYME_BINARY_DIR@/modules'))
+
+# Load the LLVM-side Enzyme plugin into opt, using the new pass-manager
+# interface where appropriate. Mirrors the %loadEnzyme substitution in the
+# Enzyme tests' lit.site.cfg.py.in.
+llvmenzyme = ('@BENCH_ENZYME_BINARY_DIR@/Enzyme/LLVMEnzyme-'
+              + config.llvm_ver + config.llvm_shlib_ext)
+oldPM = (' -load=' + llvmenzyme
+         + (' --enzyme-attributor=0' if int(config.llvm_ver) >= 13 else ''))
+newPM = (' -load-pass-plugin=' + llvmenzyme
+         + ' -load=' + llvmenzyme
+         + (' --enzyme-attributor=0' if int(config.llvm_ver) >= 13 else ''))
+config.substitutions.append(
+    ('%loadEnzyme', oldPM if int(config.llvm_ver) < 16 else newPM))
+config.substitutions.append(('%newLoadEnzyme', newPM))
+config.substitutions.append(
+    ('%enzyme', ('-enzyme' if int(config.llvm_ver) < 16 else '-passes="enzyme"')))
+
+# FlangEnzyme plugin: lets flang run Enzyme itself instead of piping IR to
+# opt. Mirrors the %loadFlangEnzyme substitution in the Enzyme tests'
+# lit.site.cfg.py.in.
+flangEnzyme = ('@BENCH_ENZYME_BINARY_DIR@/Enzyme/FlangEnzyme-'
+               + config.llvm_ver + config.llvm_shlib_ext)
+config.substitutions.append(('%loadFlangEnzyme',
+                             ' -fpass-plugin=' + flangEnzyme
+                             + ' -Xflang -load -Xflang ' + flangEnzyme))
+config.substitutions.append(('%flangEnzymeConfig',
+                             ' --config=@BENCH_ENZYME_BINARY_DIR@/Enzyme/FlangEnzyme-'
+                             + config.llvm_ver + '.cfg'))
+
+# --- Available features -------------------------------------------------
+
+# The Fortran benchmarks require a fairly recent LLVM/Flang stack.
+if int(config.llvm_ver) >= 13:
+    config.available_features.add('fortran')
+
+# Only advertise the flangenzyme feature if the relevant plugin actually
+# exists and the compiler in use is flang.
+import shutil
+if (os.path.basename(config.fc).startswith('flang')
+        and os.path.exists(flangEnzyme)):
+    config.available_features.add('flangenzyme')
+    fc_dir = os.path.dirname(shutil.which(config.fc) or config.fc)
+    if (os.path.exists(os.path.join(fc_dir, 'ld.lld'))
+            or shutil.which('ld.lld') is not None):
+        config.available_features.add('flangenzyme_lld')
+
+# Let the main config do the real work. Note the path here is resolved by
+# CMake to point into the source tree (where lit.cfg.py lives), not the
+# build tree (where this file is generated).
+lit_config.load_config(config, "@CMAKE_CURRENT_SOURCE_DIR@/lit.cfg.py")

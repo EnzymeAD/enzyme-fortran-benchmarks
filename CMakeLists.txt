@@ -1,0 +1,92 @@
+# CMake build system for the Enzyme Fortran benchmarks.
+#
+# This project does not build the benchmarks themselves; the CMake project
+# exists to configure LLVM's lit site configuration and to drive LLVM's
+# ``lit`` test runner against the Fortran benchmarks, mimicking the
+# build/test infrastructure used by Enzyme itself (enzyme/test/CMakeLists.txt)
+# and by enzyme-benchmarks (the C++ benchmark suite).
+
+cmake_minimum_required(VERSION 3.20)
+# NOTE: C needed for LLVMConfig.cmake's internal checks
+project(enzyme-fortran-benchmarks LANGUAGES C Fortran)
+
+# Locate the same LLVM installation that Enzyme was built against. Required
+# so that we can find LLVM's CMake helpers (e.g. ``configure_lit_site_cfg``,
+# ``add_lit_testsuite``) and the LLVM tools (``opt``, ``FileCheck``, ...).
+find_package(LLVM REQUIRED CONFIG)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}: ${LLVM_DIR}")
+
+list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+include(AddLLVM)
+
+# Locate the Enzyme build tree so that the benchmarks can reference the
+# Enzyme LLVM/flang plugins and the Fortran enzyme module directory. Either
+# point this at the build directory directly (the directory containing
+# ``Enzyme/LLVMEnzyme-<ver>.so`` etc.) or at a standard Enzyme install
+# prefix.
+set(Enzyme_BINARY_DIR "" CACHE PATH "Path to the Enzyme build directory")
+if(NOT Enzyme_BINARY_DIR)
+  message(FATAL_ERROR "Enzyme_BINARY_DIR must be set to the Enzyme build directory")
+endif()
+
+# Locate the ``lit`` test runner. AddLLVM's helpers expect this in the form
+# of the LLVM_EXTERNAL_LIT cache FILEPATH; we always override it from the
+# environment, picking up whatever 'lit' is on PATH (typically the one in
+# the active Python virtualenv).
+find_program(ENZYME_BENCH_LIT_EXECUTABLE NAMES llvm-lit lit REQUIRED)
+set(LLVM_EXTERNAL_LIT "${ENZYME_BENCH_LIT_EXECUTABLE}"
+    CACHE FILEPATH "Path to the lit test runner" FORCE)
+message(STATUS "Found lit: ${LLVM_EXTERNAL_LIT}")
+
+enable_testing()
+
+# These variables are referenced by lit.site.cfg.py.in.
+set(BENCH_Fortran_COMPILER "${CMAKE_Fortran_COMPILER}")
+set(BENCH_ENZYME_BINARY_DIR "${Enzyme_BINARY_DIR}")
+set(BENCH_LLVM_TOOLS_DIR "${LLVM_TOOLS_BINARY_DIR}")
+set(BENCH_LLVM_VERSION_MAJOR "${LLVM_VERSION_MAJOR}")
+set(BENCH_LLVM_SHLIBEXT "${LLVM_PLUGIN_EXT}")
+
+configure_lit_site_cfg(
+  ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
+  ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py MAIN_CONFIG
+  ${CMAKE_CURRENT_SOURCE_DIR}/lit.cfg.py)
+
+# Unlike enzyme-benchmarks, which is built from within Enzyme's own build
+# tree, this project is standalone, so the Enzyme plugin targets do not exist
+# here. Instead, check that the plugin files the lit substitutions reference
+# are present and expose the check as a target the lit suite can depend on.
+set(ENZYME_BENCH_PLUGIN
+    "${Enzyme_BINARY_DIR}/Enzyme/LLVMEnzyme-${LLVM_VERSION_MAJOR}${LLVM_PLUGIN_EXT}")
+set(ENZYME_BENCH_MODULES_DIR "${Enzyme_BINARY_DIR}/modules")
+add_custom_target(bench-enzyme-deps
+  COMMAND ${CMAKE_COMMAND} -E echo
+          "Enzyme plugins found in ${Enzyme_BINARY_DIR}"
+  DEPENDS "${ENZYME_BENCH_PLUGIN}")
+if(NOT EXISTS "${ENZYME_BENCH_PLUGIN}")
+  message(FATAL_ERROR
+    "LLVMEnzyme plugin not found at ${ENZYME_BENCH_PLUGIN}; "
+    "point Enzyme_BINARY_DIR at an Enzyme build with ENZYME_FORTRAN=ON")
+endif()
+if(NOT EXISTS "${ENZYME_BENCH_MODULES_DIR}/enzyme.mod")
+  message(FATAL_ERROR
+    "Fortran enzyme module not found in ${ENZYME_BENCH_MODULES_DIR}; "
+    "point Enzyme_BINARY_DIR at an Enzyme build with ENZYME_FORTRAN=ON")
+endif()
+
+# Run the benchmark suite
+add_lit_testsuite(bench-enzyme-fortran "Running Enzyme Fortran benchmarks"
+    ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS bench-enzyme-deps
+    ARGS -v -j 1
+)
+
+set_target_properties(bench-enzyme-fortran PROPERTIES FOLDER "bench Tests")
+
+# Also register with CTest so ``ctest`` picks the suite up from the build
+# directory. (add_lit_testsuite only creates a build target.)
+add_test(
+  NAME bench-enzyme-fortran-lit
+  COMMAND ${LLVM_EXTERNAL_LIT} -sv ${CMAKE_CURRENT_BINARY_DIR})
+
+add_subdirectory(benchmarks)

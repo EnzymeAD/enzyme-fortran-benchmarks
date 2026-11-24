@@ -1,0 +1,8 @@
+# .gitignore
+
+# Subdirectories
+build/
+
+# Specific files
+build.sh
+test.sh
