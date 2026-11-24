@@ -240,8 +240,8 @@ program bratu_implicit_euler_jacobian_timing
   write(*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
   write(*,*)
   write(*,*) "Table row:"
-  write(*,"(a41,2(1x,'&',1x,i6),3(1x,'&',es11.4),1x,'&',1x,f6.2,'\%\\')") "2D Bratu (assembled Jacobian)", &
-    n * newton_steps, sum(primal_times) / repetitions, sum(ref_times) / repetitions, &
+  write(*,"(a41,2(1x,'&',1x,i6),3(1x,'&',es11.4),1x,'&',1x,f7.2,'\%\\')") "2D Bratu (assembled Jacobian)", &
+    newton_steps, sum(primal_times) / repetitions, sum(ref_times) / repetitions, &
     sum(ad_times) / repetitions, (sum(ad_times) / sum(ref_times) - 1.0) * 100
 
 end program bratu_implicit_euler_jacobian_timing

@@ -262,7 +262,7 @@ program robertson_cvode_dense
   write(*,*)
   write(*,*) "Table row:"
   write(*,"(a41,2(1x,'&',1x,i6),3(1x,'&',es11.4),1x,'&',f6.2,1x,'\%\\')") "1D Robertson (assembled Jacobian)", &
-    3 * jac_evals, sum(primal_times) / repetitions, sum(ref_times) / repetitions, &
+    jac_evals, sum(primal_times) / repetitions, sum(ref_times) / repetitions, &
     sum(ad_times) / repetitions, (sum(ad_times) / sum(ref_times) - 1.0) * 100
 end program robertson_cvode_dense
 
