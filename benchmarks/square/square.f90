@@ -71,14 +71,14 @@ program main
   if (ad_acc /= 9.0 * 6.0) error stop "unexpected adjoint result"
 
   write (*, "(a,i0)") "repetitions: ", repetitions
-  write (*, "(a,f12.6)") "primal average wall time (ms): ", 1.0e3 * sum(primal_times) / repetitions
-  write (*, "(a,f12.6)") "reference average wall time (ms): ", 1.0e3 * sum(ref_times) / repetitions
-  write (*, "(a,f12.6)") "adjoint average wall time (ms): ", 1.0e3 * sum(ad_times) / repetitions
-  write (*, "(a,f12.6)") "primal minimum wall time (ms): ", 1.0e3 * minval(primal_times)
-  write (*, "(a,f12.6)") "reference minimum wall time (ms): ", 1.0e3 * minval(ref_times)
-  write (*, "(a,f12.6)") "adjoint minimum wall time (ms): ", 1.0e3 * minval(ad_times)
-  write (*, "(a,f8.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
-  write (*, "(a,f8.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
+  write (*, "(a40,es11.4)") "primal average wall time (s): ", sum(primal_times) / repetitions
+  write (*, "(a40,es11.4)") "reference average wall time (s): ", sum(ref_times) / repetitions
+  write (*, "(a40,es11.4)") "adjoint average wall time (s): ", sum(ad_times) / repetitions
+  write (*, "(a40,es11.4)") "primal minimum wall time (s): ", minval(primal_times)
+  write (*, "(a40,es11.4)") "reference minimum wall time (s): ", minval(ref_times)
+  write (*, "(a40,es11.4)") "adjoint minimum wall time (s): ", minval(ad_times)
+  write (*, "(a40,es11.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
+  write (*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
 
 contains
 
@@ -97,8 +97,8 @@ contains
 end program main
 
 ! CHECK: repetitions: 9
-! CHECK: primal average wall time (ms):
-! CHECK: adjoint average wall time (ms):
-! CHECK: primal minimum wall time (ms):
-! CHECK: adjoint minimum wall time (ms):
+! CHECK: primal average wall time (s):
+! CHECK: adjoint average wall time (s):
+! CHECK: primal minimum wall time (s):
+! CHECK: adjoint minimum wall time (s):
 ! CHECK: average adjoint / primal time ratio:

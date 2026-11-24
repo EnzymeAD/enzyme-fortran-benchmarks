@@ -231,25 +231,25 @@ program bratu_implicit_euler_jacobian_timing
   write (*, "(a,l1)") "solutions agree: ", maxval(abs(u_ad - u_ref)) < 1.0e-10_dp
   write (*, "(a,i0,1x,i0)") "Newton iterations (adjoint, reference): ", newton_steps
   write (*, "(a,i0)") "repetitions: ", repetitions
-  write (*, "(a,f12.3)") "primal average wall time (ms): ", 1.0e3_dp * sum(primal_times) / repetitions
-  write (*, "(a,f12.3)") "reference average wall time (ms): ", 1.0e3_dp * sum(ref_times) / repetitions
-  write (*, "(a,f12.3)") "adjoint average wall time (ms): ", 1.0e3_dp * sum(ad_times) / repetitions
-  write (*, "(a,f12.3)") "primal minimum wall time (ms): ", 1.0e3_dp * minval(primal_times)
-  write (*, "(a,f12.3)") "reference minimum wall time (ms): ", 1.0e3_dp * minval(ref_times)
-  write (*, "(a,f12.3)") "adjoint minimum wall time (ms): ", 1.0e3_dp * minval(ad_times)
-  write (*, "(a,f8.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
-  write (*, "(a,f10.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
+  write (*, "(a40,es11.4)") "primal average wall time (s): ", sum(primal_times) / repetitions
+  write (*, "(a40,es11.4)") "reference average wall time (s): ", sum(ref_times) / repetitions
+  write (*, "(a40,es11.4)") "adjoint average wall time (s): ", sum(ad_times) / repetitions
+  write (*, "(a40,es11.4)") "primal minimum wall time (s): ", minval(primal_times)
+  write (*, "(a40,es11.4)") "reference minimum wall time (s): ", minval(ref_times)
+  write (*, "(a40,es11.4)") "adjoint minimum wall time (s): ", minval(ad_times)
+  write (*, "(a40,es11.4)") "average adjoint / reference time ratio: ", sum(ad_times) / sum(ref_times)
+  write (*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
 end program bratu_implicit_euler_jacobian_timing
 
 ! CHECK: both setups reached t =
 ! CHECK: solutions agree: T
 ! CHECK: Newton iterations (adjoint, reference):
 ! CHECK: repetitions: 9
-! CHECK: primal average wall time (ms):
-! CHECK: reference average wall time (ms):
-! CHECK: adjoint average wall time (ms):
-! CHECK: primal minimum wall time (ms):
-! CHECK: reference minimum wall time (ms):
-! CHECK: adjoint minimum wall time (ms):
+! CHECK: primal average wall time (s):
+! CHECK: reference average wall time (s):
+! CHECK: adjoint average wall time (s):
+! CHECK: primal minimum wall time (s):
+! CHECK: reference minimum wall time (s):
+! CHECK: adjoint minimum wall time (s):
 ! CHECK: average adjoint / reference time ratio:
 ! CHECK: average adjoint / primal time ratio:
