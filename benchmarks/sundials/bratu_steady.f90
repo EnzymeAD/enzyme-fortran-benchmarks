@@ -220,7 +220,7 @@ program bratu_steady
   write(*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
   write(*,*)
   write(*,*) "Table row:"
-  write(*,"(a41,2(1x,'&',1x,i6),3(1x,'&',es11.4),1x,'&',f6.2,1x,'\%\\')") "1D Bratu (steady)", &
+  write(*,"(a41,2(1x,'&',1x,i6),3(1x,'&',es11.4),1x,'&',f6.2,1x,'\%\\')") "1D Bratu (Jacobian-free)", &
     krylov_steps, sum(primal_times) / repetitions, sum(ref_times) / repetitions, &
     sum(ad_times) / repetitions, (sum(ad_times) / sum(ref_times) - 1.0) * 100
 end program bratu_steady
