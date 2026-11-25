@@ -109,6 +109,38 @@ add_custom_target(bench-sundials-deps
           "SUNDIALS available in ${BENCH_SUNDIALS_LIB_DIR}, Fortran modules in ${BENCH_SUNDIALS_FORTRAN_INCLUDE}"
   DEPENDS ${BENCH_SUNDIALS_DEP_TARGET})
 
+# The OpenAD benchmarks build examples shipped with the OpenAD/F tool
+# (benchmarks/openad). Download the last OpenAD snapshot once at configure time
+# and unpack those examples into the build tree; they are exposed to lit as
+# %openad. Set BENCH_OPENAD=OFF to skip them, e.g. without network access.
+option(BENCH_OPENAD "Download the OpenAD/F examples for the OpenAD benchmarks" ON)
+set(BENCH_OPENAD_EXAMPLES "")
+if(BENCH_OPENAD)
+  set(OPENAD_TARBALL "${CMAKE_CURRENT_BINARY_DIR}/dependencies/OpenAD_2014-03-15.tgz")
+  file(DOWNLOAD
+    "http://www.mcs.anl.gov/~utke/OpenAD_tars/493/OpenAD_2014-03-15.tgz"
+    "${OPENAD_TARBALL}"
+    EXPECTED_HASH SHA256=1e41bc4388e3c7f99d64dde11e22e801d6705a0c6049b30c04b48f89d8b28800
+    SHOW_PROGRESS)
+  set(OPENAD_DIR "${CMAKE_CURRENT_BINARY_DIR}/dependencies/openad")
+  file(ARCHIVE_EXTRACT INPUT "${OPENAD_TARBALL}" DESTINATION "${OPENAD_DIR}"
+    PATTERNS OpenAD/COPYRIGHT OpenAD/Examples/BoxModel OpenAD/Examples/FDC
+             OpenAD/Examples/ShallowWater)
+  set(BENCH_OPENAD_EXAMPLES "${OPENAD_DIR}/OpenAD/Examples")
+endif()
+
+# The OpenAD shallow water example reads its input with netCDF-Fortran's
+# Fortran 77 interface (netcdf.inc).
+find_path(BENCH_NETCDF_INCLUDE_DIR netcdf.inc)
+find_library(BENCH_NETCDFF_LIBRARY netcdff)
+find_library(BENCH_NETCDF_LIBRARY netcdf)
+set(BENCH_NETCDF_INCLUDE "")
+set(BENCH_NETCDF_LIBS "")
+if(BENCH_NETCDF_INCLUDE_DIR AND BENCH_NETCDFF_LIBRARY AND BENCH_NETCDF_LIBRARY)
+  set(BENCH_NETCDF_INCLUDE "-I${BENCH_NETCDF_INCLUDE_DIR}")
+  set(BENCH_NETCDF_LIBS "${BENCH_NETCDFF_LIBRARY} ${BENCH_NETCDF_LIBRARY}")
+endif()
+
 # These variables are referenced by lit.site.cfg.py.in.
 set(BENCH_Fortran_COMPILER "${CMAKE_Fortran_COMPILER}")
 set(BENCH_ENZYME_BINARY_DIR "${Enzyme_BINARY_DIR}")

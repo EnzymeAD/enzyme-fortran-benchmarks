@@ -132,9 +132,15 @@ for bench in "${BENCHMARKS[@]}"; do
     echo "skipping ${bench}: ${binary} not found (was that RUN line executed?)"
     continue
   fi
+  # A benchmark that reads input files runs in the directory its RUN lines
+  # prepared, ${name}.f90.tmp.run.
+  run_dir="${output_dir}/${name}.f90.tmp.run"
+  if [ ! -d "${run_dir}" ]; then
+    run_dir="${PWD}"
+  fi
   echo "${bench} (repetitions: ${REPETITIONS})"
   echo
-  "${binary}" "${REPETITIONS}"
+  (cd "${run_dir}" && "${binary}" "${REPETITIONS}")
   echo
   RUN=$((RUN + 1))
 done

@@ -65,9 +65,25 @@ lit `Output` directories. It discovers every benchmark automatically and
 accepts name filters (`./bench.sh bratu`) and a repetition count
 (`-r/--repetitions N`, default 9). See `./bench.sh --help`.
 
+### OpenAD benchmarks
+
+The benchmarks under `benchmarks/openad/` differentiate examples that ship
+with the OpenAD/F tool, unmodified: a three-box ocean model (BoxModel), the
+MINPACK-2 flow in a driven cavity (FDC), and wind-driven channel flow over a
+sill (ShallowWater, the SWM case of Vlasenko, Köhl and Stammer, Comput. Phys.
+Commun. 199, 2016). CMake downloads the last OpenAD snapshot
+(`OpenAD_2014-03-15.tgz`, checked by SHA-256) into the build tree and lit
+exposes its examples as `%openad`; configure with `-DBENCH_OPENAD=OFF` to skip
+the download. Each benchmark checks its gradient against finite differences,
+and the shallow water one also against the gradient OpenAD computed, before
+timing it. They build with full LTO through FlangEnzyme's config file
+(`REQUIRES: flangenzyme_lld`), and the shallow water benchmark needs
+netCDF-Fortran.
+
 ## Benchmarks
 
 - [x] Square
+- [x] OpenAD (box model, driven cavity, shallow water)
 - [x] SUNDIALS
 - [ ] Fiats
 - [ ] MITgcm
