@@ -62,14 +62,24 @@ contains
     real(dp), intent(in) :: dx, lambda
     real(dp), intent(in) :: u(n)
     real(dp), intent(out) :: jac(n, n)
-    real(dp) :: v(n), column(n)
-    integer :: j
+    real(dp) :: v(n), columns(3, n)
+    integer :: c, j
 
-    do j = 1, n
+    ! Three colours for the tridiagonal sparsity pattern: propagate the
+    ! vectors [1, 0, 0, 1, ...], [0, 1, 0, 0, 1, ...], [0, 0, 1, 0, 0, 1, ...]
+    ! (one per residue class mod 3) and decompress. Column i has colour
+    ! mod(i - 1, 3) + 1, and consecutive columns j-1, j, j+1 always have
+    ! distinct colours, so each product recovers exactly one entry per row.
+    jac = 0.0_dp
+    do c = 1, 3
       v = 0.0_dp
-      v(j) = 1.0_dp
-      call jacobian_vector_product_ad(n, dx, lambda, u, v, column)
-      jac(:, j) = column
+      v(c::3) = 1.0_dp
+      call jacobian_vector_product_ad(n, dx, lambda, u, v, columns(c, :))
+    end do
+    do j = 1, n
+      jac(j, j) = columns(mod(j - 1, 3) + 1, j)
+      if (j > 1) jac(j, j - 1) = columns(mod(j - 2, 3) + 1, j)
+      if (j < n) jac(j, j + 1) = columns(mod(j, 3) + 1, j)
     end do
   end subroutine jacobian_ad
 
@@ -240,7 +250,7 @@ program bratu_implicit_euler_jacobian_timing
   write(*, "(a40,es11.4)") "average adjoint / primal time ratio: ", sum(ad_times) / sum(primal_times)
   write(*,*)
   write(*,*) "Table row:"
-  write(*,"(a41,2(1x,'&',1x,i6),3(1x,'&',es11.4),1x,'&',1x,f7.2,'\%\\')") "2D Bratu (assembled Jacobian)", &
+  write(*,"(a41,2(1x,'&',1x,i6),3(1x,'&',es11.4),1x,'&',1x,f6.2,'\%\\')") "2D Bratu (assembled Jacobian)", &
     newton_steps, sum(primal_times) / repetitions, sum(ref_times) / repetitions, &
     sum(ad_times) / repetitions, (sum(ad_times) / sum(ref_times) - 1.0) * 100
 
