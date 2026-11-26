@@ -4,5 +4,6 @@
 # ``! RUN:`` / ``! CHECK:`` directives, registered with the lit testsuite
 # declared in the parent CMakeLists.txt.
 
+add_subdirectory(openad)
 add_subdirectory(square)
 add_subdirectory(sundials)

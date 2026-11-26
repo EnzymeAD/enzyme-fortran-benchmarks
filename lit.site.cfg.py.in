@@ -60,6 +60,17 @@ config.substitutions.append(('%loadFortran', '-I@BENCH_ENZYME_BINARY_DIR@/module
 config.substitutions.append(('%sundialsFortran', '-I@BENCH_SUNDIALS_FORTRAN_INCLUDE@'))
 config.substitutions.append(('%sundialsLibs', '@BENCH_SUNDIALS_LIB_FLAGS@'))
 
+# OpenAD/F examples unpacked by CMake (BENCH_OPENAD) and netCDF-Fortran's
+# include and link flags, used by the OpenAD benchmarks.
+config.openad_examples = "@BENCH_OPENAD_EXAMPLES@"
+config.substitutions.append(('%openad', config.openad_examples))
+if config.openad_examples:
+    config.available_features.add('openad')
+config.substitutions.append(('%netcdfInclude', '@BENCH_NETCDF_INCLUDE@'))
+config.substitutions.append(('%netcdfLibs', '@BENCH_NETCDF_LIBS@'))
+if "@BENCH_NETCDF_LIBS@":
+    config.available_features.add('netcdf')
+
 # Load the LLVM-side Enzyme plugin into opt, using the new pass-manager
 # interface where appropriate. Mirrors the %loadEnzyme substitution in the
 # Enzyme tests' lit.site.cfg.py.in.
