@@ -4,22 +4,15 @@
 ! RUN: sed -n 's/^grad(\(.*\))=/\1/p' %openad/ShallowWater/shallow_water_ad.out > %t.run/grad_reference.txt
 ! RUN: %fc %flangEnzymeConfig -flto -O2 -fdefault-real-8 -fdefault-double-8 %loadFortran -module-dir %t.mod \
 ! RUN:   -I%openad/ShallowWater/Inc %netcdfInclude -Wl,-mllvm,-enzyme-global-activity \
-! RUN:   %openad/ShallowWater/adsize.f90 %openad/ShallowWater/size.f90 %openad/ShallowWater/parms.f90 \
-! RUN:   %openad/ShallowWater/vars.f90 %openad/ShallowWater/pfields.f90 %openad/ShallowWater/force.f90 \
-! RUN:   %openad/ShallowWater/data.f90 %openad/ShallowWater/weights.f90 %openad/ShallowWater/mini.f90 \
-! RUN:   %openad/ShallowWater/inifields.F %openad/ShallowWater/readparms.F %openad/ShallowWater/iowrapper.F \
-! RUN:   %openad/ShallowWater/read_data.F %openad/ShallowWater/make_weights.F \
-! RUN:   %openad/ShallowWater/map_control_vector.F %openad/ShallowWater/small_routines_split.F \
-! RUN:   %openad/ShallowWater/small_routines_joint.F %openad/ShallowWater/cost_function.F \
-! RUN:   %openad/ShallowWater/cost_depth.F %openad/ShallowWater/loop_body_wrapper_inner.F \
-! RUN:   %openad/ShallowWater/loop_body_wrapper_outer.F %openad/ShallowWater/forward_model.F \
-! RUN:   %openad/ShallowWater/ionetcdf.F %S/Inputs/openad_harness.f90 %s -o %t2 %netcdfLibs
+! RUN:   %shallow_water_sources %S/Inputs/openad_harness.f90 %s -o %t2 %netcdfLibs
 ! RUN: cd %t.run && %t2 9 | FileCheck %s
 
 ! Timing benchmark for OpenAD/F's shallow water example
 ! (Examples/ShallowWater): wind-driven channel flow over a meridional sill on a
-! 20 x 20 grid (Losch and Wunsch, J. Atmos. Oceanic Technol. 20, 2003), the SWM
-! case of Vlasenko, Koehl and Stammer, Comput. Phys. Commun. 199 (2016). The
+! 20 x 20 grid (Losch and Wunsch, J. Atmos. Oceanic Technol. 20, 2003,
+! https://doi.org/10.1175/1520-0426(2003)020<1685:BTAACV>2.0.CO;2), the SWM
+! case of Vlasenko, Koehl and Stammer, Comput. Phys. Commun. 199 (2016),
+! https://doi.org/10.1016/j.cpc.2015.10.008. The
 ! gradient of the zonal volume transport after 40000 time steps is taken with
 ! respect to the 160 bathymetry controls, and compared both with finite
 ! differences and with the gradient OpenAD computed (shallow_water_ad.out).
@@ -42,6 +35,7 @@ contains
     real(real64) :: cost
     external :: forward_model
 
+    ! The zonal volume transport is the only output, so m is 1.
     call forward_model(n, x, cost)
     y(1) = cost
   end subroutine shallow_water
@@ -68,6 +62,9 @@ program main
   use openad_harness, only: read_repetitions, fill_deterministic, check_and_time
   implicit none
   integer, parameter :: m = 1
+  ! Finite difference step along v, and the largest relative difference
+  ! between the adjoint and the finite difference directional derivatives.
+  real(real64), parameter :: h = 1.0e-6_real64, tol = 1.0e-5_real64
   real(real64), parameter :: reference_tolerance = 1.0e-8_real64
   real(real64) :: xc(ncmax), w(m), t0, max_err
   real(real64), allocatable :: v(:), dxc(:), reference(:)
@@ -87,7 +84,7 @@ program main
   w = 1
   call fill_deterministic(v, 2)
   call check_and_time(shallow_water, shallow_water_gradient, nc, xc(1:nc), m, &
-                      w, v, 1.0e-6_real64, 1.0e-5_real64, read_repetitions(), dxc)
+                      w, v, h, tol, read_repetitions(), dxc)
 
   open (newunit=unit, file="grad_reference.txt", status="old", action="read")
   do i = 1, nc

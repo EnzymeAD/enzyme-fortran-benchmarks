@@ -2,6 +2,26 @@
 
 This repository collects a variety of benchmarks for Enzyme's Fortran support.
 
+## Dependencies
+
+- **Enzyme**: a build configured with `-DENZYME_FORTRAN=ON`, which provides
+  the `LLVMEnzyme` plugin and the Fortran `enzyme` module. The benchmarks that
+  let flang run Enzyme also need `-DENZYME_FLANG=ON` (the `FlangEnzyme` plugin
+  and its config file), and the OpenAD benchmarks, which link with full LTO,
+  additionally need the `LLDEnzyme` plugin and `ld.lld`.
+- **LLVM**: the LLVM that Enzyme was built against, with flang, `FileCheck`
+  and `lit`.
+- **Downloaded or bundled by the build**:
+  - [SUNDIALS](https://github.com/LLNL/sundials), the pinned
+    `dependencies/sundials` submodule, built by CMake (or an existing install
+    via `SUNDIALS_PREFIX`).
+  - [OpenAD/F](https://www.mcs.anl.gov/OpenAD/) examples, from the
+    `OpenAD_2014-03-15.tgz` snapshot downloaded at configure time
+    (`-DBENCH_OPENAD=OFF` skips it).
+- **System libraries**: [netCDF-Fortran](https://github.com/Unidata/netcdf-fortran)
+  (with netCDF-C) for the OpenAD shallow water benchmark, found by CMake; the
+  benchmark is unsupported without it.
+
 ## Building
 
 The benchmarks are driven by LLVM's [lit](https://llvm.org/docs/CommandGuide/lit.html)

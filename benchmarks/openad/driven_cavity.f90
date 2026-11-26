@@ -50,6 +50,9 @@ program main
   use openad_harness, only: read_repetitions, fill_deterministic, check_and_time
   implicit none
   integer, parameter :: n = nx * ny, m = nx * ny
+  ! Finite difference step along v, and the largest relative difference
+  ! between the adjoint and the finite difference directional derivatives.
+  real(real64), parameter :: h = 1.0e-6_real64, tol = 1.0e-6_real64
   real(real64) :: x(n), dx(n), w(m), v(n)
   external :: init
 
@@ -57,7 +60,7 @@ program main
   call fill_deterministic(w, 1)
   call fill_deterministic(v, 2)
   call check_and_time(driven_cavity, driven_cavity_gradient, n, x, m, w, v, &
-                      1.0e-6_real64, 1.0e-6_real64, read_repetitions(), dx)
+                      h, tol, read_repetitions(), dx)
 end program main
 
 ! CHECK: gradient check: PASS
